@@ -1,0 +1,102 @@
+# # docker build -t ubuntu2204_dl:latest -f Dockerfile_Ubuntu22_DeepL.txt .
+#
+# ==================================================================
+# module list
+# ------------------------------------------------------------------
+# python        3.10    (apt)
+# pytorch       latest (pip)
+# ==================================================================
+
+FROM nvidia/cuda:12.6.0-cudnn-runtime-ubuntu22.04
+ENV LANG C.UTF-8
+
+# Disable interactive prompts and preset time zone
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
+    PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
+    GIT_CLONE="git clone --depth 10" && \
+
+    rm -rf /var/lib/apt/lists/* \
+           /etc/apt/sources.list.d/cuda.list \
+           /etc/apt/sources.list.d/nvidia-ml.list && \
+
+    apt-get update && \
+
+# ==================================================================
+# tools
+# ------------------------------------------------------------------
+
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        build-essential \
+        apt-utils \
+        ca-certificates \
+        wget \
+        git \
+        vim \
+        libssl-dev \
+        curl \
+        unzip \
+        unrar \
+        cmake \
+        && \
+
+# ==================================================================
+# python
+# ------------------------------------------------------------------
+
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        python3.10 \
+        python3.10-dev \
+        python3.10-distutils \
+        && \
+    wget -O ~/get-pip.py \
+        https://bootstrap.pypa.io/get-pip.py && \
+    python3.10 ~/get-pip.py && \
+    ln -s /usr/bin/python3.10 /usr/local/bin/python && \
+    $PIP_INSTALL \
+        numpy \
+        scipy \
+        pandas \
+        scikit-image \
+        scikit-learn \
+        matplotlib \
+        Cython \
+        tqdm \
+        && \
+# ==================================================================
+# pytorch
+# ------------------------------------------------------------------
+
+    $PIP_INSTALL \
+        future \
+        numpy \
+        protobuf \
+        enum34 \
+        pyyaml \
+        typing \
+        && \
+    $PIP_INSTALL \
+        --pre torch torchvision torchaudio -f \
+        https://download.pytorch.org/whl/cu126 \
+        && \
+
+# ==================================================================
+# tensorflow
+# ------------------------------------------------------------------
+
+    $PIP_INSTALL \
+        tensorflow==2.15.0 \
+        && \
+
+# ==================================================================
+# config & cleanup
+# ------------------------------------------------------------------
+
+    ldconfig && \
+    apt-get clean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/* /tmp/* ~/*
